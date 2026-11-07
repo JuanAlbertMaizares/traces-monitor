@@ -6,7 +6,9 @@
   "scripts": {
     "typecheck": "bun check",
     "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts"
+    "start": "bun src/index.ts",
+    "db:gen": "bunx drizzle-kit generate",
+    "db:mig": "bunx drizzle-kit migrate"
   },
   "devDependencies": {
     "@types/bun": "latest",
