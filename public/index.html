@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Request Inspector</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+    h1 { color: #38bdf8; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #334155; }
+    tr:hover { background: #1e293b; cursor: pointer; }
+    #detail { margin-top: 2rem; padding: 1rem; background: #1e293b; border-radius: 8px; display: none; }
+    pre { background: #0f172a; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Request Inspector</h1>
+  <p>Últimos traces capturados:</p>
+  <table id="traces-table">
+    <thead>
+      <tr><th>ID</th><th>Method</th><th>Path</th><th>Status</th><th>Duration</th></tr>
+    </thead>
+    <tbody id="traces-body"></tbody>
+  </table>
+
+  <div id="detail">
+    <h2>Detalle del Trace</h2>
+    <pre id="detail-content"></pre>
+  </div>
+
+  <script>
+    async function loadTraces() {
+      // Ojo: como interceptamos res.json, la respuesta viene envuelta en { data: [...] }
+      const res = await fetch('/traces');
+      const json = await res.json();
+      const traces = json.data; // <-- Desenvolvemos
+
+      const tbody = document.getElementById('traces-body');
+      tbody.innerHTML = '';
+      
+      traces.forEach(t => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${t.id.slice(0, 8)}...</td>
+          <td>${t.method}</td>
+          <td>${t.path}</td>
+          <td>${t.status}</td>
+          <td>${t.durationMs}ms</td>
+        `;
+        tr.onclick = () => loadDetail(t.id);
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadDetail(id) {
+      const res = await fetch(`/traces/${id}`);
+      const json = await res.json();
+      
+      const detailDiv = document.getElementById('detail');
+      const content = document.getElementById('detail-content');
+      
+      detailDiv.style.display = 'block';
+      content.textContent = JSON.stringify(json.data, null, 2); // <-- Desenvolvemos
+    }
+
+    loadTraces();
+  </script>
+</body>
+</html>
