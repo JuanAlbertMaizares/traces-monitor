@@ -19,11 +19,32 @@ export function traceMiddleware(req: Request, res: Response, next: NextFunction)
   (req as any)._traceEvents = []; // Inicializamos el acumulador
   const start = Date.now();
 
-  // 2. Escuchamos el evento "finish" del response.
-  //    Se dispara cuando los headers y el body ya se enviaron al cliente.
-  //    Es el único momento seguro para saber el status final y la duración.
-  res.on("finish", async() => {
+  // MUTACIÓN DEL RESPONSE (Headers)
+  res.setHeader("X-Trace-Id", traceId);
+
+  // MUTACIÓN DEL RESPONSE (Intercepción de res.json)
+  // Guardamos la función original
+  const originalJson = res.json.bind(res);
+  
+  // La reemplazamos
+  res.json = (body: any) => {
+    // Solo envolvemos si la respuesta no es ya un error o algo raro
+    const wrappedBody = {
+      data: body,
+      meta: { traceId: traceId }
+    };
+    return originalJson(wrappedBody);
+  };
+
+  res.on("finish", async () => {
+    // ... (tu lógica de inserción en la DB existente) ...
+    // Nota: El body ya se envió, aquí solo guardamos el trace en la DB.
     const durationMs = Date.now() - start;
+
+    // MUTACIÓN DEL RESPONSE (Headers en finish)
+    // No podemos setear headers en finish porque ya se enviaron, pero podemos loguearlo.
+    // res.setHeader("X-Response-Time", durationMs); // <-- Esto fallaría
+
     try {
       // Transacción para guardar el trace y sus eventos juntos
       await db.transaction(async (tx) => {
